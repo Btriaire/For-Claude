@@ -1,0 +1,14 @@
+{
+  "kpis": [
+    {"id": "kpi_0", "label": "Revenue by Region", "sheet": "Sales", "value_column": "Revenue", "category_column": "Region", "format": "currency", "color_index": 0},
+    {"id": "kpi_1", "label": "Units by Region", "sheet": "Sales", "value_column": "Units", "category_column": "Region", "format": "number", "color_index": 1},
+    {"id": "kpi_2", "label": "Revenue by Channel", "sheet": "Channel", "value_column": "Revenue", "category_column": "Channel", "format": "currency", "color_index": 2},
+    {"id": "kpi_3", "label": "Revenue by Product", "sheet": "Product", "value_column": "Revenue", "category_column": "Product", "format": "currency", "color_index": 3}
+  ],
+  "colors": {
+    "primary": "#5B2D8E",
+    "secondary": "#C9A227",
+    "tertiary": "#6DBF8B",
+    "quaternary": "#E8735A"
+  }
+}
