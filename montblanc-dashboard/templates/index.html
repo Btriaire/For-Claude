@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Upload — Montblanc Dashboard{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+  <div class="upload-card">
+    <div class="upload-card-header">
+      <h1>New Dashboard Report</h1>
+      <p>Upload your Excel file and enter the period details below.</p>
+    </div>
+
+    <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
+
+      <div class="form-section">
+        <label class="form-label" for="period">Reporting Period</label>
+        <input class="form-input" type="text" id="period" name="period"
+               placeholder="e.g. April 2025"
+               value="{{ now }}" required />
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="file">Excel File</label>
+        <div class="file-drop-zone" id="dropZone">
+          <div class="drop-icon">📊</div>
+          <p class="drop-text">Drag &amp; drop your Excel file here</p>
+          <p class="drop-sub">or click to browse</p>
+          <input type="file" id="file" name="file" accept=".xlsx,.xls" class="file-input" required />
+          <p class="file-name" id="fileName"></p>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="key_events">Key Events This Period</label>
+        <textarea class="form-textarea" id="key_events" name="key_events" rows="4"
+                  placeholder="• Product launch in North America&#10;• New partnership signed with XYZ&#10;• Supply chain disruption in Q2"></textarea>
+        <p class="form-hint">List the major events that impacted results this period.</p>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="comments">Management Commentary</label>
+        <textarea class="form-textarea" id="comments" name="comments" rows="3"
+                  placeholder="Overall performance was above target driven by strong EMEA results..."></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          Generate Dashboard →
+        </button>
+        {% if has_config %}
+          <span class="form-hint">Config loaded — dashboard will be generated directly.</span>
+        {% else %}
+          <span class="form-hint">No KPI config found — you will configure indicators after upload.</span>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('file');
+const fileName  = document.getElementById('fileName');
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) {
+    fileName.textContent = fileInput.files[0].name;
+    dropZone.classList.add('has-file');
+  }
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    fileName.textContent = e.dataTransfer.files[0].name;
+    dropZone.classList.add('has-file');
+  }
+});
+</script>
+{% endblock %}

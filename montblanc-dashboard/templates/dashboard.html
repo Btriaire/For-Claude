@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}{{ period }} — Dashboard{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .dashboard-page { max-width: 1280px; margin: 0 auto; padding: 28px 24px 48px; }
+
+  /* ── Period bar ── */
+  .dash-period-bar { display: flex; align-items: center; justify-content: space-between;
+    background: var(--purple); color: white; border-radius: 10px; padding: 14px 24px; margin-bottom: 24px; }
+  .dash-period-bar h2 { margin: 0; font-size: 22px; font-weight: 700; }
+  .dash-period-bar .period-sub { font-size: 13px; opacity: .75; margin-top: 3px; }
+  .dash-actions { display: flex; gap: 10px; }
+
+  /* ── KPI cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .kpi-card { border-radius: 10px; padding: 20px 20px 18px; color: white; position: relative; overflow: hidden; }
+  .kpi-card::after { content: ''; position: absolute; right: -20px; bottom: -20px;
+    width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,.12); }
+  .kpi-card .kpi-name { font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; opacity: .85; margin-bottom: 10px; }
+  .kpi-card .kpi-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .kpi-card .kpi-label-sm { font-size: 11px; opacity: .7; margin-top: 6px; }
+
+  /* ── Donut charts ── */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 20px; margin-bottom: 32px; }
+  .chart-card { background: white; border: 1px solid #ede8f5; border-radius: 12px;
+    padding: 20px 24px 16px; box-shadow: 0 2px 12px rgba(91,45,142,.07); }
+  .chart-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .chart-card-title { font-size: 14px; font-weight: 700; color: #1A1A1A; }
+  .chart-card-total { font-size: 13px; color: #888; }
+  .chart-inner { display: flex; align-items: center; gap: 24px; }
+  .chart-canvas-wrap { position: relative; width: 180px; min-width: 180px; height: 180px; }
+  .chart-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; pointer-events: none; }
+  .chart-center .cv { font-size: 18px; font-weight: 700; color: #1A1A1A; line-height: 1.1; }
+  .chart-center .cl { font-size: 10px; color: #888; margin-top: 2px; }
+  .chart-legend { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .legend-name { color: #1A1A1A; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .legend-val { color: #555; font-weight: 600; white-space: nowrap; }
+  .legend-pct { color: #aaa; font-size: 11px; white-space: nowrap; }
+
+  /* ── Events ── */
+  .events-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .events-card { background: white; border: 1px solid #ede8f5; border-radius: 12px; padding: 22px 24px; box-shadow: 0 2px 12px rgba(91,45,142,.07); }
+  .events-card h3 { font-size: 12px; font-weight: 700; color: var(--purple); text-transform: uppercase;
+    letter-spacing: 1px; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--yellow); }
+  .events-card p { font-size: 13px; color: #333; line-height: 1.7; margin: 0; white-space: pre-wrap; }
+
+  /* ── Empty state ── */
+  .empty-chart { text-align: center; padding: 32px; color: #aaa; font-size: 13px; }
+
+  /* ── Section label ── */
+  .section-label { font-size: 11px; font-weight: 700; color: var(--purple); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #ede8f5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+
+  <div class="dash-period-bar">
+    <div>
+      <h2>Performance Dashboard</h2>
+      <div class="period-sub">{{ period }}</div>
+    </div>
+    <div class="dash-actions">
+      <a href="{{ url_for('configure') }}" class="btn-outline-white">⚙ Edit KPIs</a>
+      <a href="{{ url_for('export_pptx') }}" class="btn-yellow">⬇ Export PPTX</a>
+    </div>
+  </div>
+
+  {% if data %}
+
+  <!-- KPI Summary Cards -->
+  <div class="section-label">Key Indicators</div>
+  <div class="kpi-grid">
+    {% set card_colors = ['#5B2D8E','#C9A227','#6DBF8B','#E8735A','#7D3C98','#B8860B','#4CAF82','#D35400'] %}
+    {% for kpi in data %}
+    <div class="kpi-card" style="background: {{ card_colors[loop.index0 % card_colors|length] }}">
+      <div class="kpi-name">{{ kpi.label }}</div>
+      <div class="kpi-value" id="kv-{{ kpi.id }}">—</div>
+      <div class="kpi-label-sm">Total</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Donut Charts -->
+  {% set chart_kpis = data | selectattr('breakdown') | list %}
+  {% if chart_kpis %}
+  <div class="section-label">Breakdown by Category</div>
+  <div class="charts-grid">
+    {% for kpi in chart_kpis %}
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">{{ kpi.label }}</div>
+        <div class="chart-card-total" id="ct-{{ kpi.id }}"></div>
+      </div>
+      <div class="chart-inner">
+        <div class="chart-canvas-wrap">
+          <canvas id="chart-{{ kpi.id }}" width="180" height="180"></canvas>
+          <div class="chart-center">
+            <div class="cv" id="cv-{{ kpi.id }}"></div>
+            <div class="cl">{{ kpi.label }}</div>
+          </div>
+        </div>
+        <div class="chart-legend" id="legend-{{ kpi.id }}"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Events & Commentary -->
+  {% if key_events or comments %}
+  <div class="section-label">Events &amp; Commentary</div>
+  <div class="events-grid">
+    {% if key_events %}
+    <div class="events-card">
+      <h3>Key Events</h3>
+      <p>{{ key_events }}</p>
+    </div>
+    {% endif %}
+    {% if comments %}
+    <div class="events-card">
+      <h3>Management Commentary</h3>
+      <p>{{ comments }}</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-chart">
+    <p>No KPI data found. <a href="{{ url_for('configure') }}">Configure your KPIs</a> or check that the Excel file matches your configuration.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+const PALETTE = {{ config.colors | tojson }};
+const CHART_COLORS = [
+  PALETTE.primary, PALETTE.secondary, PALETTE.tertiary, PALETTE.quaternary,
+  '#9B59B6','#D4A017','#52BE80','#E07B5A'
+];
+
+const KPI_DATA = {{ data | tojson }};
+
+function fmt(value, format) {
+  if (format === 'currency') {
+    if (value >= 1e6) return '$' + (value/1e6).toFixed(1) + 'M';
+    if (value >= 1e3) return '$' + (value/1e3).toFixed(1) + 'K';
+    return '$' + value.toLocaleString('en-US', {maximumFractionDigits:0});
+  }
+  if (format === 'percentage') return value.toFixed(1) + '%';
+  if (value >= 1e6) return (value/1e6).toFixed(1) + 'M';
+  if (value >= 1e3) return (value/1e3).toFixed(1) + 'K';
+  return value.toLocaleString('en-US', {maximumFractionDigits:0});
+}
+
+KPI_DATA.forEach(kpi => {
+  // Fill summary card
+  const kv = document.getElementById('kv-' + kpi.id);
+  if (kv) kv.textContent = fmt(kpi.total, kpi.format);
+
+  if (!kpi.breakdown || kpi.breakdown.length === 0) return;
+
+  const labels = kpi.breakdown.map(b => b.label);
+  const values = kpi.breakdown.map(b => b.value);
+  const total  = values.reduce((a,b) => a+b, 0);
+  const colors = CHART_COLORS.slice(0, values.length);
+
+  // Center text
+  const cv = document.getElementById('cv-' + kpi.id);
+  const ct = document.getElementById('ct-' + kpi.id);
+  if (cv) cv.textContent = fmt(total, kpi.format);
+  if (ct) ct.textContent = 'Total: ' + fmt(total, kpi.format);
+
+  // Chart
+  const canvas = document.getElementById('chart-' + kpi.id);
+  if (!canvas) return;
+
+  new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors,
+      borderColor: '#fff', borderWidth: 3, hoverOffset: 8 }] },
+    options: {
+      cutout: '62%',
+      responsive: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed;
+              const pct = (v / total * 100).toFixed(1);
+              return ` ${fmt(v, kpi.format)}  (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Legend
+  const legendEl = document.getElementById('legend-' + kpi.id);
+  if (!legendEl) return;
+  legendEl.innerHTML = kpi.breakdown.map((b, i) => {
+    const pct = (b.value / total * 100).toFixed(1);
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${colors[i]}"></div>
+      <span class="legend-name" title="${b.label}">${b.label}</span>
+      <span class="legend-val">${fmt(b.value, kpi.format)}</span>
+      <span class="legend-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+});
+</script>
+{% endblock %}

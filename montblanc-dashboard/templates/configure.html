@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Configure KPIs — Montblanc Dashboard{% endblock %}
+
+{% block head %}
+<style>
+  .kpi-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 12px; background: #fafafa; border: 1px solid #e8e0f0; border-radius: 8px; padding: 14px 16px; }
+  .kpi-row:hover { border-color: #5B2D8E; }
+  .field-group label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 4px; }
+  .field-group select, .field-group input { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 13px; color: #1A1A1A; background: white; }
+  .field-group select:focus, .field-group input:focus { outline: none; border-color: #5B2D8E; }
+  .btn-remove { background: none; border: 1px solid #e8735a; color: #e8735a; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: all .2s; }
+  .btn-remove:hover { background: #e8735a; color: white; }
+  .color-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+  .color-item label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 6px; }
+  .color-preview { display: flex; align-items: center; gap: 8px; }
+  .color-preview input[type=color] { width: 40px; height: 36px; border: none; cursor: pointer; border-radius: 6px; }
+  .color-preview input[type=text] { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-family: monospace; font-size: 13px; }
+  .section-divider { border: none; border-top: 1px solid #e8e0f0; margin: 28px 0; }
+  .config-page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 26px; color: #1A1A1A; margin: 0 0 6px; }
+  .page-header p { color: #666; margin: 0; }
+  .section-title { font-size: 13px; font-weight: 700; color: #5B2D8E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .kpi-headers { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 36px; gap: 10px; padding: 0 16px; margin-bottom: 6px; }
+  .kpi-headers span { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .5px; }
+  .actions-bar { display: flex; gap: 12px; margin-top: 16px; align-items: center; }
+  .no-file-warning { background: #fff8e8; border: 1px solid #C9A227; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; color: #7a5c00; font-size: 13px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-page">
+  <div class="page-header">
+    <h1>Configure KPIs</h1>
+    <p>Define which columns from your Excel file to display as key indicators.</p>
+  </div>
+
+  {% if not structure %}
+  <div class="no-file-warning">
+    ⚠ No Excel file loaded. <a href="{{ url_for('index') }}">Upload a file first</a> to see available columns, or configure manually.
+  </div>
+  {% endif %}
+
+  <p class="section-title">Key Performance Indicators</p>
+
+  <div class="kpi-headers">
+    <span>Label</span><span>Sheet</span><span>Value Column</span>
+    <span>Category Column</span><span>Format</span><span></span>
+  </div>
+
+  <div id="kpiList">
+    {% for kpi in config.kpis %}
+    <div class="kpi-row" data-index="{{ loop.index0 }}">
+      <div class="field-group">
+        <label>Label</label>
+        <input type="text" class="kpi-label" value="{{ kpi.label }}" placeholder="e.g. Revenue" />
+      </div>
+      <div class="field-group">
+        <label>Sheet</label>
+        <select class="kpi-sheet" onchange="updateCols(this)">
+          <option value="">— select —</option>
+          {% for sheet_name in structure %}
+          <option value="{{ sheet_name }}" {% if kpi.sheet == sheet_name %}selected{% endif %}>{{ sheet_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Value Column</label>
+        <select class="kpi-value-col">
+          <option value="">— select —</option>
+          {% if kpi.sheet and kpi.sheet in structure %}
+            {% for col in structure[kpi.sheet].columns %}
+            <option value="{{ col.name }}" {% if kpi.value_column == col.name %}selected{% endif %}>{{ col.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Category (for donut)</label>
+        <select class="kpi-cat-col">
+          <option value="">None</option>
+          {% if kpi.sheet and kpi.sheet in structure %}
+            {% for col in structure[kpi.sheet].columns %}
+            <option value="{{ col.name }}" {% if kpi.category_column == col.name %}selected{% endif %}>{{ col.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Format</label>
+        <select class="kpi-format">
+          <option value="number" {% if kpi.format == 'number' %}selected{% endif %}>Number</option>
+          <option value="currency" {% if kpi.format == 'currency' %}selected{% endif %}>Currency ($)</option>
+          <option value="percentage" {% if kpi.format == 'percentage' %}selected{% endif %}>Percentage (%)</option>
+        </select>
+      </div>
+      <div><button class="btn-remove" onclick="removeKpi(this)">✕</button></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions-bar">
+    <button class="btn-secondary" onclick="addKpi()">+ Add KPI</button>
+  </div>
+
+  <hr class="section-divider" />
+
+  <p class="section-title">Color Palette</p>
+  <div class="color-grid">
+    <div class="color-item">
+      <label>Primary (Purple)</label>
+      <div class="color-preview">
+        <input type="color" id="colorPrimary" value="{{ config.colors.primary }}" oninput="syncHex(this,'hexPrimary')" />
+        <input type="text" id="hexPrimary" value="{{ config.colors.primary }}" oninput="syncPicker(this,'colorPrimary')" maxlength="7" />
+      </div>
+    </div>
+    <div class="color-item">
+      <label>Secondary (Dark Yellow)</label>
+      <div class="color-preview">
+        <input type="color" id="colorSecondary" value="{{ config.colors.secondary }}" oninput="syncHex(this,'hexSecondary')" />
+        <input type="text" id="hexSecondary" value="{{ config.colors.secondary }}" oninput="syncPicker(this,'colorSecondary')" maxlength="7" />
+      </div>
+    </div>
+    <div class="color-item">
+      <label>Tertiary (Light Green)</label>
+      <div class="color-preview">
+        <input type="color" id="colorTertiary" value="{{ config.colors.tertiary }}" oninput="syncHex(this,'hexTertiary')" />
+        <input type="text" id="hexTertiary" value="{{ config.colors.tertiary }}" oninput="syncPicker(this,'colorTertiary')" maxlength="7" />
+      </div>
+    </div>
+    <div class="color-item">
+      <label>Quaternary (Coral Orange)</label>
+      <div class="color-preview">
+        <input type="color" id="colorQuaternary" value="{{ config.colors.quaternary }}" oninput="syncHex(this,'hexQuaternary')" />
+        <input type="text" id="hexQuaternary" value="{{ config.colors.quaternary }}" oninput="syncPicker(this,'colorQuaternary')" maxlength="7" />
+      </div>
+    </div>
+  </div>
+
+  <hr class="section-divider" />
+
+  <div style="display:flex; gap:12px; align-items:center;">
+    <button class="btn-primary" onclick="saveConfig()">Save &amp; View Dashboard</button>
+    <button class="btn-ghost" onclick="if(confirm('Reset all KPI config?')) fetch('/reset_config',{method:'POST'}).then(()=>location.reload())">Reset Config</button>
+    <a href="{{ url_for('index') }}" class="btn-ghost">Cancel</a>
+  </div>
+</div>
+
+<script>
+const STRUCTURE = {{ structure | tojson }};
+
+function updateCols(sheetSelect) {
+  const row = sheetSelect.closest('.kpi-row');
+  const sheetName = sheetSelect.value;
+  const sheet = STRUCTURE[sheetName];
+  const valSel = row.querySelector('.kpi-value-col');
+  const catSel = row.querySelector('.kpi-cat-col');
+
+  valSel.innerHTML = '<option value="">— select —</option>';
+  catSel.innerHTML = '<option value="">None</option>';
+
+  if (sheet) {
+    sheet.columns.forEach(col => {
+      valSel.innerHTML += `<option value="${col.name}">${col.name}${col.is_numeric ? '' : ' ⚠'}</option>`;
+      catSel.innerHTML += `<option value="${col.name}">${col.name}</option>`;
+    });
+  }
+}
+
+function addKpi() {
+  const sheets = Object.keys(STRUCTURE);
+  const sheetOpts = ['<option value="">— select —</option>',
+    ...sheets.map(s => `<option value="${s}">${s}</option>`)].join('');
+
+  const div = document.createElement('div');
+  div.className = 'kpi-row';
+  div.innerHTML = `
+    <div class="field-group"><label>Label</label><input type="text" class="kpi-label" placeholder="e.g. Revenue" /></div>
+    <div class="field-group"><label>Sheet</label><select class="kpi-sheet" onchange="updateCols(this)">${sheetOpts}</select></div>
+    <div class="field-group"><label>Value Column</label><select class="kpi-value-col"><option value="">— select —</option></select></div>
+    <div class="field-group"><label>Category (for donut)</label><select class="kpi-cat-col"><option value="">None</option></select></div>
+    <div class="field-group"><label>Format</label>
+      <select class="kpi-format">
+        <option value="number">Number</option>
+        <option value="currency">Currency ($)</option>
+        <option value="percentage">Percentage (%)</option>
+      </select></div>
+    <div><button class="btn-remove" onclick="removeKpi(this)">✕</button></div>`;
+  document.getElementById('kpiList').appendChild(div);
+}
+
+function removeKpi(btn) {
+  btn.closest('.kpi-row').remove();
+}
+
+function syncHex(picker, hexId) {
+  document.getElementById(hexId).value = picker.value;
+}
+function syncPicker(hex, pickerId) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(hex.value))
+    document.getElementById(pickerId).value = hex.value;
+}
+
+function saveConfig() {
+  const rows = document.querySelectorAll('.kpi-row');
+  const kpis = [];
+  rows.forEach((row, i) => {
+    const label   = row.querySelector('.kpi-label').value.trim();
+    const sheet   = row.querySelector('.kpi-sheet').value;
+    const valCol  = row.querySelector('.kpi-value-col').value;
+    const catCol  = row.querySelector('.kpi-cat-col').value;
+    const fmt     = row.querySelector('.kpi-format').value;
+    if (label && sheet && valCol)
+      kpis.push({ id: `kpi_${i}`, label, sheet, value_column: valCol,
+                  category_column: catCol || null, format: fmt, color_index: i });
+  });
+
+  const colors = {
+    primary:    document.getElementById('hexPrimary').value,
+    secondary:  document.getElementById('hexSecondary').value,
+    tertiary:   document.getElementById('hexTertiary').value,
+    quaternary: document.getElementById('hexQuaternary').value,
+  };
+
+  fetch('/api/save_config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kpis, colors })
+  }).then(r => r.json()).then(d => {
+    if (d.status === 'ok') window.location.href = '/dashboard';
+  });
+}
+</script>
+{% endblock %}
