@@ -218,7 +218,7 @@ def reset_config():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     from waitress import serve
     print(f"Starting Montblanc Dashboard on http://0.0.0.0:{port}")
     serve(app, host="0.0.0.0", port=port)
