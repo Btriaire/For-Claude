@@ -14,72 +14,40 @@
       <div class="form-section">
         <label class="form-label" for="period">Reporting Period</label>
         <input class="form-input" type="text" id="period" name="period"
-               placeholder="e.g. April 2025"
-               value="{{ now }}" required />
+               placeholder="e.g. April 2025" required />
       </div>
 
       <div class="form-section">
-        <label class="form-label" for="file">Excel File</label>
-        <div class="file-drop-zone" id="dropZone">
-          <div class="drop-icon">📊</div>
-          <p class="drop-text">Drag &amp; drop your Excel file here</p>
-          <p class="drop-sub">or click to browse</p>
-          <input type="file" id="file" name="file" accept=".xlsx,.xls" class="file-input" required />
-          <p class="file-name" id="fileName"></p>
-        </div>
+        <label class="form-label" for="file">Excel File (.xlsx)</label>
+        <input type="file" id="file" name="file" accept=".xlsx,.xls"
+               style="display:block; width:100%; padding:10px; border:2px solid #C9A227;
+                      border-radius:8px; font-family:inherit; font-size:14px;
+                      background:#fffdf5; cursor:pointer;"
+               required />
       </div>
 
       <div class="form-section">
         <label class="form-label" for="key_events">Key Events This Period</label>
         <textarea class="form-textarea" id="key_events" name="key_events" rows="4"
-                  placeholder="• Product launch in North America&#10;• New partnership signed with XYZ&#10;• Supply chain disruption in Q2"></textarea>
-        <p class="form-hint">List the major events that impacted results this period.</p>
+                  placeholder="• Product launch in North America&#10;• New partnership signed&#10;• Supply chain disruption"></textarea>
       </div>
 
       <div class="form-section">
         <label class="form-label" for="comments">Management Commentary</label>
         <textarea class="form-textarea" id="comments" name="comments" rows="3"
-                  placeholder="Overall performance was above target driven by strong EMEA results..."></textarea>
+                  placeholder="Overall performance was above target..."></textarea>
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn-primary">
-          Generate Dashboard →
-        </button>
+        <button type="submit" class="btn-primary">Generate Dashboard →</button>
         {% if has_config %}
-          <span class="form-hint">Config loaded — dashboard will be generated directly.</span>
+          <span class="form-hint">Config loaded — dashboard generated directly.</span>
         {% else %}
-          <span class="form-hint">No KPI config found — you will configure indicators after upload.</span>
+          <span class="form-hint">No KPI config — you will configure after upload.</span>
         {% endif %}
       </div>
+
     </form>
   </div>
 </div>
-
-<script>
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('file');
-const fileName  = document.getElementById('fileName');
-
-dropZone.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) {
-    fileName.textContent = fileInput.files[0].name;
-    dropZone.classList.add('has-file');
-  }
-});
-
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  if (e.dataTransfer.files.length) {
-    fileInput.files = e.dataTransfer.files;
-    fileName.textContent = e.dataTransfer.files[0].name;
-    dropZone.classList.add('has-file');
-  }
-});
-</script>
 {% endblock %}
