@@ -4,7 +4,7 @@ services:
     runtime: python
     rootDir: montblanc-dashboard
     buildCommand: pip install -r requirements.txt
-    startCommand: bash start.sh
+    startCommand: python3 app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

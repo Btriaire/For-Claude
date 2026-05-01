@@ -5,4 +5,4 @@ python-pptx==1.0.2
 matplotlib==3.9.0
 Werkzeug==3.0.3
 numpy==1.26.4
-gunicorn==22.0.0
+waitress==3.0.0
