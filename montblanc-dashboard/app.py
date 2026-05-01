@@ -23,6 +23,22 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _config_matches(config: dict, parser) -> bool:
+    """Return True if every KPI in config refers to sheets/columns that exist."""
+    for kpi in config.get("kpis", []):
+        sheet = kpi.get("sheet")
+        if not sheet or sheet not in parser.sheets:
+            return False
+        cols = parser.sheets[sheet].columns.tolist()
+        val_col = kpi.get("value_column")
+        cat_col = kpi.get("category_column")
+        if val_col and val_col not in cols:
+            return False
+        if cat_col and cat_col not in cols:
+            return False
+    return True
+
+
 def load_config() -> dict:
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE) as f:
@@ -80,8 +96,8 @@ def upload():
     session["suggestions"] = json.dumps(suggestions)
 
     config = load_config()
-    if not config["kpis"]:
-        # Auto-apply suggestions as default config
+    # Auto-apply suggestions if no config or config doesn't match this Excel
+    if not config["kpis"] or not _config_matches(config, parser):
         config["kpis"] = suggestions
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f, indent=2)
