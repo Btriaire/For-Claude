@@ -127,6 +127,17 @@ def save_config():
     return jsonify({"status": "ok"})
 
 
+@app.route("/api/hide_kpi/<kpi_id>", methods=["POST"])
+def hide_kpi(kpi_id):
+    config = load_config()
+    for kpi in config["kpis"]:
+        if kpi["id"] == kpi_id:
+            kpi["visible"] = False
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
+    return jsonify({"status": "ok"})
+
+
 @app.route("/save_config_form", methods=["POST"])
 def save_config_form():
     raw = request.form.get("config_json", "{}")

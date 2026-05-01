@@ -64,6 +64,8 @@ class ExcelParser:
                 "category_column": None,
                 "aggregation": "count",
                 "format": "number",
+                "chart_type": "donut",
+                "visible": True,
                 "color_index": kpi_id,
                 "_suggested": True,
             })
@@ -172,11 +174,15 @@ class ExcelParser:
                 top.append({"label": "Other", "value": other_val})
                 breakdown = top
 
+            if not kpi.get("visible", True):
+                continue
+
             results.append({
                 "id": kpi.get("id", ""),
                 "label": kpi.get("label", value_col or "Count"),
                 "total": total,
                 "format": kpi.get("format", "number"),
+                "chart_type": kpi.get("chart_type", "donut"),
                 "breakdown": breakdown,
                 "color_index": kpi.get("color_index", 0),
             })
