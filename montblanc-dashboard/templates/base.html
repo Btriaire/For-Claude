@@ -3,17 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Montblanc Dashboard{% endblock %}</title>
+  <title>{% block title %}GEHC Dashboard{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   {% block head %}{% endblock %}
 </head>
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <div class="nav-logo">M</div>
-      <span class="nav-title">Montblanc Dashboard</span>
+      <!-- GEHC Medical Cross Icon -->
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="2" width="6" height="20" fill="#6400A0"/>
+          <rect x="2" y="9" width="20" height="6" fill="#6400A0"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nav-title">GE HealthCare</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.8px;text-transform:uppercase;">INT STO · Enterprise Solutions</div>
+      </div>
     </div>
     <div class="nav-links">
       <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Upload</a>

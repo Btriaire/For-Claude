@@ -11,6 +11,14 @@ from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 
+GEHC_PALETTE = [
+    "#6400A0", "#7845B3", "#66BDCC", "#31C18A",
+    "#F8DA65", "#F2886E", "#B02DFF", "#CB73FF",
+]
+
+GEHC_FONT = "Source Sans Pro"
+
+
 def _rgb(hex_color: str) -> RGBColor:
     h = hex_color.lstrip("#")
     return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
@@ -52,8 +60,7 @@ class PPTXExporter:
         self.yellow   = colors.get("secondary",  "#C9A227")
         self.green    = colors.get("tertiary",   "#6DBF8B")
         self.orange   = colors.get("quaternary", "#E8735A")
-        self.palette  = [self.purple, self.yellow, self.green, self.orange,
-                         "#9B59B6", "#D4A017", "#52BE80", "#E07B5A"]
+        self.palette = GEHC_PALETTE
 
     def generate(self, data: List[Dict], period: str,
                  comments: str, key_events: str) -> str:
@@ -99,7 +106,7 @@ class PPTXExporter:
         p.alignment = align
         r = p.add_run()
         r.text = text
-        r.font.name  = "Source Sans Pro"
+        r.font.name  = GEHC_FONT
         r.font.size  = Pt(size)
         r.font.bold  = bold
         r.font.color.rgb = _rgb(color)
@@ -122,11 +129,13 @@ class PPTXExporter:
         self._rect(slide, Inches(0.5), Inches(2.3), Inches(0.12), Inches(3.0), self.purple)
         self._rect(slide, Inches(0.5), Inches(5.3), Inches(6), Inches(0.06), self.yellow)
         self._tb(slide, Inches(0.8), Inches(2.5), Inches(10), Inches(1.3),
-                 "Monthly Performance Dashboard", 40, bold=True, color="#1A1A1A")
-        self._tb(slide, Inches(0.8), Inches(3.85), Inches(8), Inches(0.65),
-                 period, 26, color=self.purple)
-        self._tb(slide, Inches(0.8), Inches(4.7), Inches(8), Inches(0.45),
-                 f"Generated on {datetime.now().strftime('%B %d, %Y')}", 13, color="#888888")
+                 "GE HealthCare — INT STO Enterprise Solutions", 18, bold=True, color="#7F7F7F")
+        self._tb(slide, Inches(0.8), Inches(3.1), Inches(10), Inches(1.3),
+                 "Performance Dashboard", 28, bold=True, color="#000000")
+        self._tb(slide, Inches(0.8), Inches(4.1), Inches(8), Inches(0.65),
+                 period, 24, color=self.purple)
+        self._tb(slide, Inches(0.8), Inches(4.9), Inches(8), Inches(0.45),
+                 f"Generated on {datetime.now().strftime('%B %d, %Y')}", 10, color="#7F7F7F")
 
     def _kpi_overview_slide(self, prs, data, period):
         slide = self._blank(prs)

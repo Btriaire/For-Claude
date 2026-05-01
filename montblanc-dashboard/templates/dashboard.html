@@ -1,108 +1,165 @@
 {% extends "base.html" %}
-{% block title %}{{ period }} — Dashboard{% endblock %}
+{% block title %}{{ period }} — GEHC Dashboard{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  .dashboard-page { max-width: 1280px; margin: 0 auto; padding: 28px 24px 48px; }
+  .dashboard-page { max-width: 1320px; margin: 0 auto; padding: 24px 24px 48px; }
 
-  /* Period bar */
-  .dash-period-bar { display:flex; align-items:center; justify-content:space-between;
-    background:var(--purple); color:white; border-radius:10px; padding:14px 24px; margin-bottom:24px; }
-  .dash-period-bar h2 { margin:0; font-size:22px; font-weight:700; }
-  .dash-period-bar .period-sub { font-size:13px; opacity:.75; margin-top:3px; }
-  .dash-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  /* ── Period bar ── */
+  .dash-period-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--gehc-purple-1); color: white;
+    border-radius: var(--radius); padding: 14px 24px; margin-bottom: 20px;
+    border-left: 6px solid var(--gehc-teal);
+  }
+  .dash-period-bar h2 { margin: 0; font-size: var(--fs-key); font-weight: 700; }
+  .dash-period-bar .period-sub { font-size: var(--fs-small); opacity: .75; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  /* KPI cards */
-  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
-  .kpi-card { border-radius:10px; padding:20px 20px 18px; color:white; position:relative; overflow:hidden; }
-  .kpi-card::after { content:''; position:absolute; right:-20px; bottom:-20px;
-    width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,.12); }
-  .kpi-card .kpi-name { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; opacity:.85; margin-bottom:10px; }
-  .kpi-card .kpi-value { font-size:32px; font-weight:700; line-height:1; }
+  /* ── Section label ── */
+  .section-label {
+    font-size: var(--fs-note); font-weight: 700; color: var(--gehc-gray);
+    text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--gehc-border); }
 
-  /* Chart cards */
-  .charts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(460px,1fr)); gap:20px; margin-bottom:32px; }
-  .chart-card { background:white; border:1px solid #ede8f5; border-radius:12px;
-    padding:20px 24px 16px; box-shadow:0 2px 12px rgba(91,45,142,.07); position:relative; }
-  .chart-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .chart-card-title { font-size:14px; font-weight:700; color:#1A1A1A; }
-  .chart-card-total { font-size:13px; color:#888; }
-  .btn-remove-view { background:none; border:none; color:#ccc; font-size:18px; cursor:pointer;
-    line-height:1; padding:0 4px; transition:color .2s; position:absolute; top:12px; right:12px; }
-  .btn-remove-view:hover { color:#e8735a; }
+  /* ── KPI summary cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 24px; }
+
+  .kpi-card {
+    border-radius: var(--radius); padding: 18px 18px 14px; color: white;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card-accent {
+    position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: rgba(255,255,255,.3);
+  }
+  .kpi-card .kpi-name {
+    font-size: var(--fs-note); font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; opacity: .85; margin-bottom: 8px;
+  }
+  .kpi-card .kpi-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .kpi-card .kpi-sub   { font-size: var(--fs-note); opacity: .65; margin-top: 5px; text-transform: uppercase; }
+
+  /* ── Chart cards ── */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; margin-bottom: 24px; }
+
+  .chart-card {
+    background: white; border: 1px solid var(--gehc-border);
+    border-radius: var(--radius); padding: 18px 20px 14px;
+    box-shadow: var(--shadow); position: relative;
+    border-top: 3px solid var(--gehc-purple-1);
+  }
+  .chart-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .chart-card-title { font-size: var(--fs-subtitle); font-weight: 700; color: var(--gehc-black); }
+  .chart-card-total { font-size: var(--fs-small); color: var(--gehc-gray); text-transform: uppercase; letter-spacing: .5px; }
+
+  .btn-remove-view {
+    background: none; border: none; color: var(--gehc-border); font-size: 16px;
+    cursor: pointer; line-height: 1; padding: 0 4px; transition: color .15s;
+    position: absolute; top: 10px; right: 10px;
+  }
+  .btn-remove-view:hover { color: var(--gehc-coral); }
 
   /* Donut */
-  .chart-inner { display:flex; align-items:center; gap:24px; }
-  .chart-canvas-wrap { position:relative; width:180px; min-width:180px; height:180px; }
-  .chart-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    text-align:center; pointer-events:none; }
-  .chart-center .cv { font-size:18px; font-weight:700; color:#1A1A1A; line-height:1.1; }
-  .chart-center .cl { font-size:10px; color:#888; margin-top:2px; }
-  .chart-legend { flex:1; display:flex; flex-direction:column; gap:7px; }
-  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; }
-  .legend-dot { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
-  .legend-name { color:#1A1A1A; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .legend-val { color:#555; font-weight:600; white-space:nowrap; }
-  .legend-pct { color:#aaa; font-size:11px; white-space:nowrap; }
+  .chart-inner { display: flex; align-items: center; gap: 20px; }
+  .chart-canvas-wrap { position: relative; width: 170px; min-width: 170px; height: 170px; }
+  .chart-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; pointer-events: none;
+  }
+  .chart-center .cv { font-size: 16px; font-weight: 700; color: var(--gehc-black); line-height: 1.1; }
+  .chart-center .cl { font-size: var(--fs-note); color: var(--gehc-gray); margin-top: 2px; }
+
+  .chart-legend { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .legend-item  { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); }
+  .legend-dot   { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+  .legend-name  { color: var(--gehc-black); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .legend-val   { color: var(--gehc-black); font-weight: 700; white-space: nowrap; }
+  .legend-pct   { color: var(--gehc-gray); font-size: var(--fs-note); white-space: nowrap; }
 
   /* Bar */
-  .chart-bar-wrap { width:100%; height:220px; }
+  .chart-bar-wrap { width: 100%; height: 210px; }
 
-  /* Events */
-  .events-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; }
-  .events-card { background:white; border:1px solid #ede8f5; border-radius:12px; padding:22px 24px;
-    box-shadow:0 2px 12px rgba(91,45,142,.07); }
-  .events-card h3 { font-size:12px; font-weight:700; color:var(--purple); text-transform:uppercase;
-    letter-spacing:1px; margin:0 0 14px; padding-bottom:8px; border-bottom:2px solid var(--yellow); }
-  .events-card p { font-size:13px; color:#333; line-height:1.7; margin:0; white-space:pre-wrap; }
+  /* ── Share box ── */
+  .share-box {
+    background: white; border: 1px solid var(--gehc-border);
+    border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow); margin-bottom: 20px;
+    border-top: 3px solid var(--gehc-teal);
+  }
+  .share-box-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gehc-border);
+  }
+  .share-box-header h3 {
+    font-size: var(--fs-body); font-weight: 700; color: var(--gehc-purple-1);
+    text-transform: uppercase; letter-spacing: 1px; margin: 0;
+  }
+  .share-text {
+    font-size: var(--fs-small); color: var(--gehc-black); line-height: 1.8;
+    white-space: pre-wrap; background: var(--gehc-bg); padding: 12px 14px;
+    border-radius: var(--radius); font-family: 'Courier New', monospace;
+    border-left: 3px solid var(--gehc-purple-1);
+  }
+  .btn-copy {
+    font-size: var(--fs-note); font-weight: 700; color: var(--gehc-purple-1);
+    background: var(--gehc-bg); border: 1px solid var(--gehc-border);
+    border-radius: var(--radius); padding: 5px 12px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .btn-copy:hover { background: var(--gehc-border); }
+  .btn-copy.copied { color: var(--gehc-green); border-color: var(--gehc-green); }
 
-  /* Share box */
-  .share-box { background:white; border:1px solid #ede8f5; border-radius:12px;
-    padding:22px 24px; box-shadow:0 2px 12px rgba(91,45,142,.07); margin-bottom:28px; }
-  .share-box h3 { font-size:12px; font-weight:700; color:var(--purple); text-transform:uppercase;
-    letter-spacing:1px; margin:0 0 14px; padding-bottom:8px; border-bottom:2px solid var(--yellow);
-    display:flex; justify-content:space-between; align-items:center; }
-  .share-text { font-size:13px; color:#333; line-height:1.8; white-space:pre-wrap;
-    background:#f8f6fc; border-radius:8px; padding:14px 16px; font-family:monospace; }
-  .btn-copy { font-size:12px; font-weight:600; color:var(--purple); background:#f5f0ff;
-    border:1px solid #c4b0e8; border-radius:6px; padding:5px 12px; cursor:pointer; }
-  .btn-copy:hover { background:#ede8f5; }
-  .btn-copy.copied { color:#2d7a4f; background:#f0fff7; border-color:#6DBF8B; }
+  /* ── Events ── */
+  .events-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .events-card {
+    background: white; border: 1px solid var(--gehc-border);
+    border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow); border-top: 3px solid var(--gehc-yellow);
+  }
+  .events-card h3 {
+    font-size: var(--fs-note); font-weight: 700; color: var(--gehc-purple-1);
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--gehc-border);
+  }
+  .events-card p { font-size: var(--fs-body); color: var(--gehc-black); line-height: 1.7; margin: 0; white-space: pre-wrap; }
 
-  /* Section label */
-  .section-label { font-size:11px; font-weight:700; color:var(--purple); text-transform:uppercase;
-    letter-spacing:1px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-  .section-label::after { content:''; flex:1; height:1px; background:#ede8f5; }
-
-  .empty-chart { text-align:center; padding:32px; color:#aaa; font-size:13px; }
+  .empty-chart { text-align: center; padding: 40px; color: var(--gehc-gray); font-size: var(--fs-body); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-page">
 
+  <!-- Header -->
   <div class="dash-period-bar">
     <div>
       <h2>Performance Dashboard</h2>
-      <div class="period-sub">{{ period }}</div>
+      <div class="period-sub">{{ period }} · GE HealthCare — INT STO Enterprise Solutions</div>
     </div>
     <div class="dash-actions">
-      <a href="{{ url_for('configure') }}" class="btn-outline-white">⚙ Edit KPIs</a>
+      <a href="{{ url_for('configure') }}" class="btn-outline-white">⚙ Configure</a>
       <a href="{{ url_for('export_pptx') }}" class="btn-yellow">⬇ Export PPTX</a>
     </div>
   </div>
 
   {% if data %}
 
-  <!-- KPI Summary Cards -->
+  <!-- KPI Summary -->
   <div class="section-label">Key Indicators</div>
   <div class="kpi-grid">
-    {% set card_colors = ['#5B2D8E','#C9A227','#6DBF8B','#E8735A','#7D3C98','#B8860B','#4CAF82','#D35400'] %}
+    {% set card_bg = ['#6400A0','#7845B3','#66BDCC','#31C18A','#F8DA65','#F2886E','#B02DFF','#CB73FF'] %}
+    {% set card_txt = ['#FFFFFF','#FFFFFF','#000000','#000000','#000000','#000000','#FFFFFF','#000000'] %}
     {% for kpi in data %}
-    <div class="kpi-card" style="background:{{ card_colors[loop.index0 % card_colors|length] }}">
+    {% set i = loop.index0 % card_bg|length %}
+    <div class="kpi-card" style="background:{{ card_bg[i] }};color:{{ card_txt[i] }}">
+      <div class="kpi-card-accent"></div>
       <div class="kpi-name">{{ kpi.label }}</div>
       <div class="kpi-value" id="kv-{{ kpi.id }}">—</div>
+      <div class="kpi-sub">Total</div>
     </div>
     {% endfor %}
   </div>
@@ -110,24 +167,21 @@
   <!-- Charts -->
   {% set chart_kpis = data | selectattr('breakdown') | list %}
   {% if chart_kpis %}
-  <div class="section-label">Breakdown by Category</div>
+  <div class="section-label">Breakdown Analysis</div>
   <div class="charts-grid">
     {% for kpi in chart_kpis %}
     <div class="chart-card" id="card-{{ kpi.id }}">
-      <button class="btn-remove-view" onclick="removeView('{{ kpi.id }}')" title="Remove this view">✕</button>
+      <button class="btn-remove-view" onclick="removeView('{{ kpi.id }}')" title="Remove view">✕</button>
       <div class="chart-card-header">
         <div class="chart-card-title">{{ kpi.label }}</div>
         <div class="chart-card-total" id="ct-{{ kpi.id }}"></div>
       </div>
-
       {% if kpi.chart_type == 'bar' %}
-      <div class="chart-bar-wrap">
-        <canvas id="chart-{{ kpi.id }}"></canvas>
-      </div>
+      <div class="chart-bar-wrap"><canvas id="chart-{{ kpi.id }}"></canvas></div>
       {% else %}
       <div class="chart-inner">
         <div class="chart-canvas-wrap">
-          <canvas id="chart-{{ kpi.id }}" width="180" height="180"></canvas>
+          <canvas id="chart-{{ kpi.id }}" width="170" height="170"></canvas>
           <div class="chart-center">
             <div class="cv" id="cv-{{ kpi.id }}"></div>
             <div class="cl">{{ kpi.label }}</div>
@@ -141,10 +195,13 @@
   </div>
   {% endif %}
 
-  <!-- Share box -->
+  <!-- Share / Key Information -->
   <div class="section-label">Key Information</div>
   <div class="share-box">
-    <h3>Summary <button class="btn-copy" id="copyBtn" onclick="copyShare()">Copy</button></h3>
+    <div class="share-box-header">
+      <h3>Summary — {{ period }}</h3>
+      <button class="btn-copy" id="copyBtn" onclick="copyShare()">Copy to clipboard</button>
+    </div>
     <div class="share-text" id="shareText">Loading...</div>
   </div>
 
@@ -163,18 +220,20 @@
 
   {% else %}
   <div class="empty-chart">
-    <p>No KPI data found. <a href="{{ url_for('configure') }}">Configure your KPIs</a>.</p>
+    <p style="font-size:var(--fs-subtitle);font-weight:700;margin-bottom:8px;">No data to display</p>
+    <p><a href="{{ url_for('configure') }}">Configure your KPIs</a> or upload an Excel file.</p>
   </div>
   {% endif %}
 
 </div>
 
 <script>
-const PALETTE = {{ config.colors | tojson }};
-const CHART_COLORS = [
-  PALETTE.primary, PALETTE.secondary, PALETTE.tertiary, PALETTE.quaternary,
-  '#9B59B6','#D4A017','#52BE80','#E07B5A'
+/* GEHC Color Palette */
+const GEHC_PALETTE = [
+  '#6400A0','#7845B3','#66BDCC','#31C18A',
+  '#F8DA65','#F2886E','#B02DFF','#CB73FF'
 ];
+
 const KPI_DATA   = {{ data | tojson }};
 const PERIOD     = {{ period | tojson }};
 const KEY_EVENTS = {{ key_events | tojson }};
@@ -192,17 +251,20 @@ function fmt(value, format) {
   return value.toLocaleString('en-US', {maximumFractionDigits:0});
 }
 
-// Build charts
+Chart.defaults.font.family = "'Source Sans Pro', 'Source Sans 3', sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#7F7F7F';
+
 KPI_DATA.forEach(kpi => {
   const kv = document.getElementById('kv-' + kpi.id);
   if (kv) kv.textContent = fmt(kpi.total, kpi.format);
 
-  if (!kpi.breakdown || kpi.breakdown.length === 0) return;
+  if (!kpi.breakdown || !kpi.breakdown.length) return;
 
   const labels = kpi.breakdown.map(b => b.label);
   const values = kpi.breakdown.map(b => b.value);
   const total  = values.reduce((a,b) => a+b, 0);
-  const colors = CHART_COLORS.slice(0, values.length);
+  const colors = GEHC_PALETTE.slice(0, values.length);
   const canvas = document.getElementById('chart-' + kpi.id);
   if (!canvas) return;
 
@@ -212,13 +274,24 @@ KPI_DATA.forEach(kpi => {
   if (kpi.chart_type === 'bar') {
     new Chart(canvas, {
       type: 'bar',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6, borderSkipped: false }] },
+      data: { labels, datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 0,
+        borderSkipped: false,
+      }]},
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: {
-          callbacks: { label: ctx => ` ${fmt(ctx.parsed.y, kpi.format)} (${(ctx.parsed.y/total*100).toFixed(1)}%)` }
-        }},
-        scales: { y: { beginAtZero: true, grid: { color: '#f0ebff' } }, x: { grid: { display: false } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx =>
+            ` ${fmt(ctx.parsed.y, kpi.format)}  (${(ctx.parsed.y/total*100).toFixed(1)}%)`
+          }}
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#F2F2F2' }, ticks: { font: { size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        }
       }
     });
   } else {
@@ -227,46 +300,58 @@ KPI_DATA.forEach(kpi => {
 
     new Chart(canvas, {
       type: 'doughnut',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors,
-        borderColor: '#fff', borderWidth: 3, hoverOffset: 8 }] },
+      data: { labels, datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 6,
+      }]},
       options: {
-        cutout: '62%', responsive: false,
+        cutout: '60%', responsive: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed, kpi.format)} (${(ctx.parsed/total*100).toFixed(1)}%)` }}
+          tooltip: { callbacks: { label: ctx =>
+            ` ${fmt(ctx.parsed, kpi.format)}  (${(ctx.parsed/total*100).toFixed(1)}%)`
+          }}
         }
       }
     });
 
-    const legendEl = document.getElementById('legend-' + kpi.id);
-    if (legendEl) legendEl.innerHTML = kpi.breakdown.map((b, i) => {
-      const pct = (b.value / total * 100).toFixed(1);
+    const leg = document.getElementById('legend-' + kpi.id);
+    if (leg) leg.innerHTML = kpi.breakdown.map((b,i) => {
+      const pct = (b.value/total*100).toFixed(1);
       return `<div class="legend-item">
         <div class="legend-dot" style="background:${colors[i]}"></div>
         <span class="legend-name" title="${b.label}">${b.label}</span>
         <span class="legend-val">${fmt(b.value, kpi.format)}</span>
-        <span class="legend-pct">${pct}%</span>
+        <span class="legend-pct">&nbsp;${pct}%</span>
       </div>`;
     }).join('');
   }
 });
 
-// Share / summary box
+/* Share text */
 function buildShareText() {
-  let lines = [`📊 Dashboard Summary — ${PERIOD}`, ''];
+  const lines = [
+    `GE HEALTHCARE — INT STO ENTERPRISE SOLUTIONS`,
+    `Dashboard Summary — ${PERIOD}`,
+    `${'─'.repeat(50)}`,
+    ''
+  ];
   KPI_DATA.forEach(kpi => {
-    lines.push(`▸ ${kpi.label}: ${fmt(kpi.total, kpi.format)}`);
+    lines.push(`▸ ${kpi.label.toUpperCase()}: ${fmt(kpi.total, kpi.format)}`);
     if (kpi.breakdown && kpi.breakdown.length) {
       const total = kpi.breakdown.reduce((a,b) => a+b.value, 0);
       kpi.breakdown.forEach(b => {
         const pct = (b.value/total*100).toFixed(1);
-        lines.push(`    • ${b.label}: ${fmt(b.value, kpi.format)} (${pct}%)`);
+        lines.push(`    ${b.label}: ${fmt(b.value, kpi.format)} (${pct}%)`);
       });
     }
     lines.push('');
   });
-  if (KEY_EVENTS) { lines.push('🗓 Key Events'); lines.push(KEY_EVENTS); lines.push(''); }
-  if (COMMENTS)   { lines.push('💬 Commentary'); lines.push(COMMENTS); }
+  if (KEY_EVENTS) { lines.push('KEY EVENTS'); lines.push(KEY_EVENTS); lines.push(''); }
+  if (COMMENTS)   { lines.push('COMMENTARY'); lines.push(COMMENTS); }
   return lines.join('\n');
 }
 
@@ -277,17 +362,16 @@ function copyShare() {
     const btn = document.getElementById('copyBtn');
     btn.textContent = '✓ Copied!';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(() => { btn.textContent = 'Copy to clipboard'; btn.classList.remove('copied'); }, 2000);
   });
 }
 
-// Remove view
-function removeView(kpiId) {
+function removeView(id) {
   if (!confirm('Remove this chart from the dashboard?')) return;
-  fetch('/api/hide_kpi/' + kpiId, { method: 'POST' })
+  fetch('/api/hide_kpi/' + id, { method: 'POST' })
     .then(() => {
-      const card = document.getElementById('card-' + kpiId);
-      if (card) card.style.display = 'none';
+      const c = document.getElementById('card-' + id);
+      if (c) c.style.display = 'none';
     });
 }
 </script>
