@@ -165,7 +165,10 @@ class PPTXExporter:
         positions = [(Inches(0.4), Inches(1.1)), (Inches(6.9), Inches(1.1))]
         for i, kpi in enumerate(kpis[:2]):
             x, y = positions[i]
-            self._add_donut_chart(slide, kpi, x, y, Inches(5.9), Inches(5.8))
+            if kpi.get("aggregation") == "histogram" or kpi.get("chart_type") == "bar":
+                self._add_column_chart(slide, kpi, x, y, Inches(5.9), Inches(5.8))
+            else:
+                self._add_donut_chart(slide, kpi, x, y, Inches(5.9), Inches(5.8))
 
     def _events_slide(self, prs, key_events, comments, period):
         slide = self._blank(prs)
@@ -186,6 +189,40 @@ class PPTXExporter:
             self._rect(slide, Inches(0.5), y, Inches(0.06), Inches(1.8), self.green)
             self._tb(slide, Inches(0.75), y, Inches(12.0), Inches(1.8),
                      comments, 13, color="#1A1A1A")
+
+    def _add_column_chart(self, slide, kpi, x, y, w, h):
+        if not kpi["breakdown"]:
+            return
+
+        labels = [b["label"] for b in kpi["breakdown"]]
+        values = [b["value"] for b in kpi["breakdown"]]
+        total  = sum(values)
+
+        cd = ChartData()
+        cd.categories = labels
+        cd.add_series(kpi["label"], values)
+
+        chart_frame = slide.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, x, y, w, h, cd)
+        chart = chart_frame.chart
+
+        chart.has_title = True
+        chart.chart_title.text_frame.text = (
+            f"{kpi['label']}  —  {_format_value(total, kpi['format'])}"
+        )
+        chart.chart_title.text_frame.paragraphs[0].runs[0].font.size = Pt(13)
+        chart.chart_title.text_frame.paragraphs[0].runs[0].font.bold = True
+        chart.chart_title.text_frame.paragraphs[0].runs[0].font.color.rgb = _rgb("#1A1A1A")
+
+        is_histogram = kpi.get("aggregation") == "histogram"
+        series = chart.series[0]
+        for i, point in enumerate(series.points):
+            color_hex = self.purple if is_histogram else self.palette[i % len(self.palette)]
+            point.format.fill.solid()
+            point.format.fill.fore_color.rgb = _rgb(color_hex)
+
+        chart.has_legend = not is_histogram
+        if chart.has_legend:
+            chart.legend.include_in_layout = False
 
     def _add_donut_chart(self, slide, kpi, x, y, w, h):
         if not kpi["breakdown"]:

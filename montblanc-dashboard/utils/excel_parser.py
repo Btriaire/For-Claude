@@ -128,6 +128,11 @@ class ExcelParser:
 
         return suggestions[:8]
 
+    @staticmethod
+    def _sturges_bins(n: int) -> int:
+        import math
+        return max(5, min(20, int(1 + math.log2(n)) if n > 1 else 5))
+
     def extract_kpi_data(self, kpi_configs: List[Dict]) -> List[Dict]:
         results = []
         for kpi in kpi_configs:
@@ -148,7 +153,23 @@ class ExcelParser:
                     grouped = df[category_col].dropna().value_counts()
                     for label, count in grouped.items():
                         breakdown.append({"label": str(label), "value": float(count)})
-            else:
+
+            elif aggregation == "histogram":
+                if not value_col or value_col not in df.columns:
+                    continue
+                series = pd.to_numeric(df[value_col], errors="coerce").dropna()
+                if series.empty:
+                    continue
+                n_bins = kpi.get("bins", self._sturges_bins(len(series)))
+                cuts = pd.cut(series, bins=n_bins, precision=1)
+                counts = cuts.value_counts().sort_index()
+                total = float(len(series))
+                breakdown = [
+                    {"label": str(interval), "value": float(cnt)}
+                    for interval, cnt in counts.items()
+                ]
+
+            else:  # sum
                 if not value_col or value_col not in df.columns:
                     continue
                 df[value_col] = pd.to_numeric(df[value_col], errors="coerce")
@@ -167,8 +188,8 @@ class ExcelParser:
                         if val > 0 and pd.notna(row[category_col]):
                             breakdown.append({"label": str(row[category_col]), "value": val})
 
-            # Cap at 7 + Other
-            if len(breakdown) > 7:
+            # Cap at 7 + Other (not for histograms — bins must stay intact)
+            if aggregation != "histogram" and len(breakdown) > 7:
                 top = breakdown[:6]
                 other_val = sum(b["value"] for b in breakdown[6:])
                 top.append({"label": "Other", "value": other_val})
@@ -183,6 +204,7 @@ class ExcelParser:
                 "total": total,
                 "format": kpi.get("format", "number"),
                 "chart_type": kpi.get("chart_type", "donut"),
+                "aggregation": aggregation,
                 "breakdown": breakdown,
                 "color_index": kpi.get("color_index", 0),
             })

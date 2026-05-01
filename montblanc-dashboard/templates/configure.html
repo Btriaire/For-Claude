@@ -107,10 +107,12 @@
         </select></div>
       <div class="field-group"><label>Aggregation</label>
         <select class="kpi-agg" onchange="toggleValueCol(this)">
-          <option value="count" {% if kpi.aggregation=='count' %}selected{% endif %}>COUNT rows</option>
-          <option value="sum"   {% if kpi.aggregation=='sum'   %}selected{% endif %}>SUM column</option>
+          <option value="count"     {% if kpi.aggregation=='count'     %}selected{% endif %}>COUNT rows</option>
+          <option value="sum"       {% if kpi.aggregation=='sum'       %}selected{% endif %}>SUM column</option>
+          <option value="histogram" {% if kpi.aggregation=='histogram' %}selected{% endif %}>Histogram</option>
         </select></div>
-      <div class="field-group"><label>Category (donut)</label>
+      <div class="field-group" {% if kpi.aggregation=='histogram' %}style="opacity:.3;pointer-events:none"{% endif %}>
+        <label>Category (donut)</label>
         <select class="kpi-cat-col">
           <option value="">None</option>
           {% if kpi.sheet and kpi.sheet in structure %}
@@ -128,7 +130,12 @@
             <option value="{{ col.name }}" {% if kpi.value_column==col.name %}selected{% endif %}>{{ col.name }}</option>
             {% endfor %}
           {% endif %}
-        </select></div>
+        </select>
+        <div class="bins-wrap" style="{% if kpi.aggregation != 'histogram' %}display:none;{% endif %}margin-top:4px;">
+          <label style="font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Bins</label>
+          <input type="number" class="kpi-bins" value="{{ kpi.bins | default(10) }}" min="2" max="50" />
+        </div>
+      </div>
       <div class="field-group"><label>Chart</label>
         <select class="kpi-chart-type">
           <option value="donut" {% if kpi.chart_type != 'bar' %}selected{% endif %}>Donut</option>
@@ -226,7 +233,7 @@ function colOptions(sheetName, selected, numericOnly) {
   ].join('');
 }
 
-function appendRow(label='', sheet='', agg='count', catCol='', valCol='', chartType='donut', fmt='number') {
+function appendRow(label='', sheet='', agg='count', catCol='', valCol='', chartType='donut', fmt='number', bins=10) {
   const div = document.createElement('div');
   div.className = 'kpi-row';
   div.innerHTML = `
@@ -236,14 +243,20 @@ function appendRow(label='', sheet='', agg='count', catCol='', valCol='', chartT
       <select class="kpi-sheet" onchange="updateCols(this)">${sheetOptions(sheet)}</select></div>
     <div class="field-group"><label>Aggregation</label>
       <select class="kpi-agg" onchange="toggleValueCol(this)">
-        <option value="count" ${agg==='count'?'selected':''}>COUNT rows</option>
-        <option value="sum"   ${agg==='sum'  ?'selected':''}>SUM column</option>
+        <option value="count"     ${agg==='count'    ?'selected':''}>COUNT rows</option>
+        <option value="sum"       ${agg==='sum'      ?'selected':''}>SUM column</option>
+        <option value="histogram" ${agg==='histogram'?'selected':''}>Histogram</option>
       </select></div>
-    <div class="field-group"><label>Category (donut)</label>
+    <div class="field-group" ${agg==='histogram'?'style="opacity:.3;pointer-events:none"':''}>
+      <label>Category (donut)</label>
       <select class="kpi-cat-col">${colOptions(sheet, catCol, false)}</select></div>
     <div class="field-group kpi-val-wrap" ${agg==='count'?'style="opacity:.3;pointer-events:none"':''}>
       <label>Value Column</label>
-      <select class="kpi-value-col">${colOptions(sheet, valCol, true)}</select></div>
+      <select class="kpi-value-col">${colOptions(sheet, valCol, true)}</select>
+      <div class="bins-wrap" style="${agg==='histogram'?'':'display:none;'}margin-top:4px;">
+        <label style="font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Bins</label>
+        <input type="number" class="kpi-bins" value="${bins||10}" min="2" max="50" />
+      </div></div>
     <div class="field-group"><label>Chart</label>
       <select class="kpi-chart-type">
         <option value="donut" ${chartType==='donut'?'selected':''}>Donut</option>
@@ -271,9 +284,19 @@ function updateCols(sheetSel) {
 }
 
 function toggleValueCol(aggSel) {
-  const wrap = aggSel.closest('.kpi-row').querySelector('.kpi-val-wrap');
-  wrap.style.opacity        = aggSel.value === 'count' ? '.3' : '1';
-  wrap.style.pointerEvents  = aggSel.value === 'count' ? 'none' : 'auto';
+  const row      = aggSel.closest('.kpi-row');
+  const wrap     = row.querySelector('.kpi-val-wrap');
+  const catWrap  = row.querySelector('.kpi-cat-col').closest('.field-group');
+  const binsWrap = row.querySelector('.bins-wrap');
+  const agg      = aggSel.value;
+
+  wrap.style.opacity       = agg === 'count' ? '.3' : '1';
+  wrap.style.pointerEvents = agg === 'count' ? 'none' : 'auto';
+
+  catWrap.style.opacity       = agg === 'histogram' ? '.3' : '1';
+  catWrap.style.pointerEvents = agg === 'histogram' ? 'none' : 'auto';
+
+  if (binsWrap) binsWrap.style.display = agg === 'histogram' ? 'block' : 'none';
 }
 
 function syncHex(picker, hexId)   { document.getElementById(hexId).value = picker.value; }
@@ -288,15 +311,19 @@ function buildConfig() {
     const sheet  = row.querySelector('.kpi-sheet').value;
     const agg    = row.querySelector('.kpi-agg').value;
     const catCol = row.querySelector('.kpi-cat-col').value;
-    const valCol    = row.querySelector('.kpi-value-col').value;
-    const chartType = row.querySelector('.kpi-chart-type') ? row.querySelector('.kpi-chart-type').value : 'donut';
-    const fmt       = row.querySelector('.kpi-format').value;
+    const valCol       = row.querySelector('.kpi-value-col').value;
+    const binsEl       = row.querySelector('.kpi-bins');
+    const bins         = binsEl ? (parseInt(binsEl.value) || 10) : 10;
+    const chartTypeSel = row.querySelector('.kpi-chart-type');
+    const chartType    = agg === 'histogram' ? 'bar' : (chartTypeSel ? chartTypeSel.value : 'donut');
+    const fmt          = row.querySelector('.kpi-format').value;
     if (label && sheet)
       kpis.push({ id:`kpi_${i}`, label, sheet,
                   aggregation: agg,
                   category_column: catCol || null,
-                  value_column: agg === 'sum' ? (valCol || null) : null,
+                  value_column: (agg === 'sum' || agg === 'histogram') ? (valCol || null) : null,
                   chart_type: chartType,
+                  bins: bins,
                   visible: true,
                   format: fmt, color_index: i });
   });

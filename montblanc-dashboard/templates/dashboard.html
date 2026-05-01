@@ -177,7 +177,7 @@
         <div class="chart-card-title">{{ kpi.label }}</div>
         <div class="chart-card-total" id="ct-{{ kpi.id }}"></div>
       </div>
-      {% if kpi.chart_type == 'bar' %}
+      {% if kpi.chart_type == 'bar' or kpi.aggregation == 'histogram' %}
       <div class="chart-bar-wrap"><canvas id="chart-{{ kpi.id }}"></canvas></div>
       {% else %}
       <div class="chart-inner">
@@ -272,7 +272,32 @@ KPI_DATA.forEach(kpi => {
   const ct = document.getElementById('ct-' + kpi.id);
   if (ct) ct.textContent = 'Total: ' + fmt(total, kpi.format);
 
-  if (kpi.chart_type === 'bar') {
+  if (kpi.aggregation === 'histogram') {
+    new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets: [{
+        data: values,
+        backgroundColor: GEHC_PALETTE[0],
+        borderWidth: 0,
+        borderRadius: 0,
+        borderSkipped: false,
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        barPercentage: 1.0,
+        categoryPercentage: 1.0,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed.y, kpi.format)}` } }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#F2F2F2' }, ticks: { font: { size: 10 } },
+               title: { display: true, text: 'Count', font: { size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45 } }
+        }
+      }
+    });
+  } else if (kpi.chart_type === 'bar') {
     new Chart(canvas, {
       type: 'bar',
       data: { labels, datasets: [{
