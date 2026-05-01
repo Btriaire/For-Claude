@@ -5,11 +5,20 @@ echo "================================"
 echo "  Montblanc Dashboard - Setup"
 echo "================================"
 
-# Go to script directory
-cd "$(dirname "$0")/montblanc-dashboard"
+# Clone or update repo
+if [ -d "$HOME/montblanc-dashboard" ]; then
+  echo "Updating existing installation..."
+  cd "$HOME/montblanc-dashboard"
+  git pull --quiet
+else
+  echo "Downloading app..."
+  git clone --quiet https://github.com/Btriaire/For-Claude.git "$HOME/montblanc-dashboard"
+  cd "$HOME/montblanc-dashboard"
+fi
+
+cd montblanc-dashboard
 
 # Install dependencies
-echo ""
 echo "Installing dependencies..."
 pip3 install -r requirements.txt --quiet
 
@@ -20,9 +29,9 @@ echo ""
 echo "================================"
 echo "  App running!"
 echo ""
-echo "  Mac:   http://localhost:5000"
+echo "  Mac :  http://localhost:5000"
 if [ "$IP" != "unknown" ]; then
-echo "  iPad:  http://$IP:5000"
+echo "  iPad : http://$IP:5000"
 fi
 echo "================================"
 echo ""
