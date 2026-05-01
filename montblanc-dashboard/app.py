@@ -76,6 +76,7 @@ def upload():
 
     parser = ExcelParser(filepath)
     session["excel_structure"] = json.dumps(parser.get_structure())
+    session["suggestions"]     = json.dumps(parser.get_suggestions())
 
     config = load_config()
     if not config["kpis"]:
@@ -85,10 +86,13 @@ def upload():
 
 @app.route("/configure")
 def configure():
-    structure_raw = session.get("excel_structure", "{}")
-    structure = json.loads(structure_raw)
-    config = load_config()
-    return render_template("configure.html", structure=structure, config=config)
+    structure   = json.loads(session.get("excel_structure", "{}"))
+    suggestions = json.loads(session.get("suggestions", "[]"))
+    config      = load_config()
+    return render_template("configure.html",
+                           structure=structure,
+                           suggestions=suggestions,
+                           config=config)
 
 
 @app.route("/api/save_config", methods=["POST"])
