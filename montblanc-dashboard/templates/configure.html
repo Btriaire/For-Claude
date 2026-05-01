@@ -152,14 +152,24 @@
   <hr class="divider" />
 
   <!-- Colors -->
-  <div class="section-title">Color Palette</div>
-  <div class="color-grid">
-    {% for key, label in [('primary','Primary (Purple)'),('secondary','Secondary (Dark Yellow)'),('tertiary','Tertiary (Light Green)'),('quaternary','Quaternary (Coral)')] %}
+  <div class="section-title">GEHC Color Palette</div>
+  <div class="color-grid" style="grid-template-columns:repeat(4,1fr)">
+    {% set color_labels = [
+      ('c1','Level 1 — #6400A0'),('c2','Level 2 — #7845B3'),
+      ('c3','Level 3 — #66BDCC'),('c4','Level 4 — #31C18A'),
+      ('c5','Level 5 — #F8DA65'),('c6','Level 6 — #F2886E'),
+      ('c7','Level 7 — #B02DFF'),('c8','Level 8 — #CB73FF')
+    ] %}
+    {% for key, label in color_labels %}
     <div class="color-item">
       <label>{{ label }}</label>
       <div class="color-preview">
-        <input type="color" id="color_{{ key }}" value="{{ config.colors[key] }}" oninput="syncHex(this,'hex_{{ key }}')" />
-        <input type="text"  id="hex_{{ key }}"   value="{{ config.colors[key] }}" oninput="syncPicker(this,'color_{{ key }}')" maxlength="7" />
+        <input type="color" id="color_{{ key }}"
+               value="{{ config.colors.get(key, config.colors.get('primary','#6400A0')) }}"
+               oninput="syncHex(this,'hex_{{ key }}')" />
+        <input type="text"  id="hex_{{ key }}"
+               value="{{ config.colors.get(key, config.colors.get('primary','#6400A0')) }}"
+               oninput="syncPicker(this,'color_{{ key }}')" maxlength="7" />
       </div>
     </div>
     {% endfor %}
@@ -290,15 +300,12 @@ function buildConfig() {
                   visible: true,
                   format: fmt, color_index: i });
   });
-  return {
-    kpis,
-    colors: {
-      primary:    document.getElementById('hex_primary').value,
-      secondary:  document.getElementById('hex_secondary').value,
-      tertiary:   document.getElementById('hex_tertiary').value,
-      quaternary: document.getElementById('hex_quaternary').value,
-    }
-  };
+  const colors = {};
+  ['c1','c2','c3','c4','c5','c6','c7','c8'].forEach(k => {
+    const el = document.getElementById('hex_' + k);
+    if (el) colors[k] = el.value;
+  });
+  return { kpis, colors };
 }
 
 function saveConfig() {

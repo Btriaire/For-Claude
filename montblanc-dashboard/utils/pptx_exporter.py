@@ -56,11 +56,14 @@ class PPTXExporter:
     def __init__(self, config: Dict):
         self.config = config
         colors = config.get("colors", {})
-        self.purple   = colors.get("primary",    "#5B2D8E")
-        self.yellow   = colors.get("secondary",  "#C9A227")
-        self.green    = colors.get("tertiary",   "#6DBF8B")
-        self.orange   = colors.get("quaternary", "#E8735A")
-        self.palette = GEHC_PALETTE
+        # Support both new c1-c8 keys and legacy primary/secondary keys
+        self.palette = [
+            colors.get(f"c{i}", GEHC_PALETTE[i - 1]) for i in range(1, 9)
+        ]
+        self.purple = self.palette[0]
+        self.yellow = self.palette[4]
+        self.green  = self.palette[3]
+        self.orange = self.palette[5]
 
     def generate(self, data: List[Dict], period: str,
                  comments: str, key_events: str) -> str:

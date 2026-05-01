@@ -1,9 +1,13 @@
 {
   "kpis": [],
   "colors": {
-    "primary":    "#6400A0",
-    "secondary":  "#66BDCC",
-    "tertiary":   "#31C18A",
-    "quaternary": "#F2886E"
+    "c1": "#6400A0",
+    "c2": "#7845B3",
+    "c3": "#66BDCC",
+    "c4": "#31C18A",
+    "c5": "#F8DA65",
+    "c6": "#F2886E",
+    "c7": "#B02DFF",
+    "c8": "#CB73FF"
   }
 }

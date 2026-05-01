@@ -151,7 +151,8 @@
   <!-- KPI Summary -->
   <div class="section-label">Key Indicators</div>
   <div class="kpi-grid">
-    {% set card_bg = ['#6400A0','#7845B3','#66BDCC','#31C18A','#F8DA65','#F2886E','#B02DFF','#CB73FF'] %}
+    {% set ck = ['c1','c2','c3','c4','c5','c6','c7','c8'] %}
+    {% set card_bg = ck | map('extract', config.colors) | list %}
     {% set card_txt = ['#FFFFFF','#FFFFFF','#000000','#000000','#000000','#000000','#FFFFFF','#000000'] %}
     {% for kpi in data %}
     {% set i = loop.index0 % card_bg|length %}
@@ -228,11 +229,11 @@
 </div>
 
 <script>
-/* GEHC Color Palette */
-const GEHC_PALETTE = [
-  '#6400A0','#7845B3','#66BDCC','#31C18A',
-  '#F8DA65','#F2886E','#B02DFF','#CB73FF'
-];
+/* GEHC Color Palette — from config */
+const CFG_COLORS = {{ config.colors | tojson }};
+const GEHC_PALETTE = ['c1','c2','c3','c4','c5','c6','c7','c8']
+  .map(k => CFG_COLORS[k] || CFG_COLORS['primary'] || '#6400A0')
+  .filter(Boolean);
 
 const KPI_DATA   = {{ data | tojson }};
 const PERIOD     = {{ period | tojson }};
