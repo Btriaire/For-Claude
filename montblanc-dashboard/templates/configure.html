@@ -162,9 +162,15 @@
 
   <hr class="divider" />
 
+  <form id="saveForm" action="/save_config_form" method="post" style="display:none">
+    <input type="hidden" name="config_json" id="configJson" />
+  </form>
+
   <div style="display:flex;gap:12px;align-items:center;">
     <button class="btn-primary" onclick="saveConfig()">Save &amp; View Dashboard</button>
-    <button class="btn-ghost" onclick="if(confirm('Reset config?'))fetch('/reset_config',{method:'POST'}).then(()=>location.reload())">Reset</button>
+    <form action="/reset_config" method="post" style="display:inline">
+      <button type="submit" class="btn-ghost" onclick="return confirm('Reset config?')">Reset</button>
+    </form>
     <a href="/" class="btn-ghost">Cancel</a>
   </div>
 </div>
@@ -254,7 +260,7 @@ function syncHex(picker, hexId)   { document.getElementById(hexId).value = picke
 function syncPicker(hex, pickId)  { if (/^#[0-9A-Fa-f]{6}$/.test(hex.value)) document.getElementById(pickId).value = hex.value; }
 
 /* ── save ── */
-function saveConfig() {
+function buildConfig() {
   const rows = document.querySelectorAll('.kpi-row');
   const kpis = [];
   rows.forEach((row, i) => {
@@ -271,16 +277,29 @@ function saveConfig() {
                   value_column: agg === 'sum' ? (valCol || null) : null,
                   format: fmt, color_index: i });
   });
-  const colors = {
-    primary:    document.getElementById('hex_primary').value,
-    secondary:  document.getElementById('hex_secondary').value,
-    tertiary:   document.getElementById('hex_tertiary').value,
-    quaternary: document.getElementById('hex_quaternary').value,
+  return {
+    kpis,
+    colors: {
+      primary:    document.getElementById('hex_primary').value,
+      secondary:  document.getElementById('hex_secondary').value,
+      tertiary:   document.getElementById('hex_tertiary').value,
+      quaternary: document.getElementById('hex_quaternary').value,
+    }
   };
+}
+
+function saveConfig() {
+  const cfg = buildConfig();
+  // Try fetch first, fall back to form POST
   fetch('/api/save_config', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ kpis, colors })
-  }).then(r => r.json()).then(d => { if (d.status==='ok') window.location.href='/dashboard'; });
+    body: JSON.stringify(cfg)
+  }).then(r => r.json())
+    .then(d => { if (d.status==='ok') window.location.href='/dashboard'; })
+    .catch(() => {
+      document.getElementById('configJson').value = JSON.stringify(cfg);
+      document.getElementById('saveForm').submit();
+    });
 }
 </script>
 {% endblock %}

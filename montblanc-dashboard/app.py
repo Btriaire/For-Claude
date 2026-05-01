@@ -76,11 +76,16 @@ def upload():
 
     parser = ExcelParser(filepath)
     session["excel_structure"] = json.dumps(parser.get_structure())
-    session["suggestions"]     = json.dumps(parser.get_suggestions())
+    suggestions = parser.get_suggestions()
+    session["suggestions"] = json.dumps(suggestions)
 
     config = load_config()
     if not config["kpis"]:
-        return redirect(url_for("configure"))
+        # Auto-apply suggestions as default config
+        config["kpis"] = suggestions
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(config, f, indent=2)
+
     return redirect(url_for("dashboard"))
 
 
@@ -101,6 +106,18 @@ def save_config():
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f, indent=2)
     return jsonify({"status": "ok"})
+
+
+@app.route("/save_config_form", methods=["POST"])
+def save_config_form():
+    raw = request.form.get("config_json", "{}")
+    try:
+        data = json.loads(raw)
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/dashboard")
