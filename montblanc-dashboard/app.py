@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "montblanc-dashboard-dev-key-2024")
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "dashboard_config.json")
+CONFIG_FILE   = os.path.join(os.path.dirname(__file__), "dashboard_config.json")
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -24,17 +24,14 @@ def allowed_file(filename: str) -> bool:
 
 
 def _config_matches(config: dict, parser) -> bool:
-    """Return True if every KPI in config refers to sheets/columns that exist."""
     for kpi in config.get("kpis", []):
         sheet = kpi.get("sheet")
         if not sheet or sheet not in parser.sheets:
             return False
         cols = parser.sheets[sheet].columns.tolist()
-        val_col = kpi.get("value_column")
-        cat_col = kpi.get("category_column")
-        if val_col and val_col not in cols:
+        if kpi.get("value_column") and kpi["value_column"] not in cols:
             return False
-        if cat_col and cat_col not in cols:
+        if kpi.get("category_column") and kpi["category_column"] not in cols:
             return False
     return True
 
@@ -56,6 +53,13 @@ def _default_config() -> dict:
             "quaternary": "#E8735A",
         },
     }
+
+
+def _get_parser() -> ExcelParser | None:
+    filepath = session.get("current_file")
+    if filepath and os.path.exists(filepath):
+        return ExcelParser(filepath)
+    return None
 
 
 # ── routes ────────────────────────────────────────────────────────────────────
@@ -85,20 +89,18 @@ def upload():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
 
+    # Only store small values in session (avoid cookie overflow)
     session["current_file"] = filepath
-    session["period"] = request.form.get("period", datetime.now().strftime("%B %Y"))
-    session["comments"] = request.form.get("comments", "")
-    session["key_events"] = request.form.get("key_events", "")
+    session["period"]       = request.form.get("period", datetime.now().strftime("%B %Y"))
+    session["comments"]     = request.form.get("comments", "")
+    session["key_events"]   = request.form.get("key_events", "")
 
     parser = ExcelParser(filepath)
-    session["excel_structure"] = json.dumps(parser.get_structure())
-    suggestions = parser.get_suggestions()
-    session["suggestions"] = json.dumps(suggestions)
-
     config = load_config()
+
     # Auto-apply suggestions if no config or config doesn't match this Excel
     if not config["kpis"] or not _config_matches(config, parser):
-        config["kpis"] = suggestions
+        config["kpis"] = parser.get_suggestions()
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f, indent=2)
 
@@ -107,8 +109,9 @@ def upload():
 
 @app.route("/configure")
 def configure():
-    structure   = json.loads(session.get("excel_structure", "{}"))
-    suggestions = json.loads(session.get("suggestions", "[]"))
+    parser = _get_parser()
+    structure   = parser.get_structure()   if parser else {}
+    suggestions = parser.get_suggestions() if parser else []
     config      = load_config()
     return render_template("configure.html",
                            structure=structure,
@@ -138,12 +141,11 @@ def save_config_form():
 
 @app.route("/dashboard")
 def dashboard():
-    filepath = session.get("current_file")
-    if not filepath or not os.path.exists(filepath):
+    parser = _get_parser()
+    if not parser:
         return redirect(url_for("index"))
 
-    config = load_config()
-    parser = ExcelParser(filepath)
+    config   = load_config()
     kpi_data = parser.extract_kpi_data(config["kpis"])
 
     return render_template(
@@ -158,12 +160,11 @@ def dashboard():
 
 @app.route("/export/pptx")
 def export_pptx():
-    filepath = session.get("current_file")
-    if not filepath or not os.path.exists(filepath):
+    parser = _get_parser()
+    if not parser:
         return redirect(url_for("index"))
 
-    config = load_config()
-    parser = ExcelParser(filepath)
+    config   = load_config()
     kpi_data = parser.extract_kpi_data(config["kpis"])
 
     exporter = PPTXExporter(config)
@@ -193,4 +194,5 @@ def reset_config():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     from waitress import serve
+    print(f"Starting Montblanc Dashboard on http://0.0.0.0:{port}")
     serve(app, host="0.0.0.0", port=port)
