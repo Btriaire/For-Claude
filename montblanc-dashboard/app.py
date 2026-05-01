@@ -90,10 +90,15 @@ def upload():
     file.save(filepath)
 
     # Only store small values in session (avoid cookie overflow)
-    session["current_file"] = filepath
-    session["period"]       = request.form.get("period", datetime.now().strftime("%B %Y"))
-    session["comments"]     = request.form.get("comments", "")
-    session["key_events"]   = request.form.get("key_events", "")
+    session["current_file"]  = filepath
+    session["period"]        = request.form.get("period", datetime.now().strftime("%B %Y"))
+    session["report_title"]  = request.form.get("report_title", "")
+    session["key_events"]    = request.form.get("key_events", "")
+    session["comments"]      = request.form.get("comments", "")
+    session["outcome"]       = request.form.get("outcome", "")
+    session["major_points"]  = request.form.get("major_points", "")
+    session["help_needed"]   = request.form.get("help_needed", "")
+    session["bottom_banner"] = request.form.get("bottom_banner", "")
 
     parser = ExcelParser(filepath)
     config = load_config()
@@ -164,8 +169,13 @@ def dashboard():
         data=kpi_data,
         config=config,
         period=session.get("period", ""),
-        comments=session.get("comments", ""),
+        report_title=session.get("report_title", ""),
         key_events=session.get("key_events", ""),
+        comments=session.get("comments", ""),
+        outcome=session.get("outcome", ""),
+        major_points=session.get("major_points", ""),
+        help_needed=session.get("help_needed", ""),
+        bottom_banner=session.get("bottom_banner", ""),
     )
 
 
@@ -182,8 +192,13 @@ def export_pptx():
     out_path = exporter.generate(
         kpi_data,
         period=session.get("period", ""),
-        comments=session.get("comments", ""),
+        report_title=session.get("report_title", ""),
         key_events=session.get("key_events", ""),
+        comments=session.get("comments", ""),
+        outcome=session.get("outcome", ""),
+        major_points=session.get("major_points", ""),
+        help_needed=session.get("help_needed", ""),
+        bottom_banner=session.get("bottom_banner", ""),
     )
 
     period_slug = session.get("period", "dashboard").replace(" ", "_")

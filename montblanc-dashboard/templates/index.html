@@ -1,50 +1,130 @@
 {% extends "base.html" %}
-{% block title %}Upload — Montblanc Dashboard{% endblock %}
+{% block title %}Upload — GEHC Monthly Report{% endblock %}
+
+{% block head %}
+<style>
+  .upload-page { max-width: 780px; margin: 0 auto; padding: 32px 24px 48px; }
+  .upload-card { background: white; border: 1px solid var(--gehc-border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .upload-card-header { background: var(--gehc-purple-1); padding: 22px 28px; border-bottom: 4px solid var(--gehc-yellow); }
+  .upload-card-header h1 { margin: 0 0 4px; font-size: 20px; color: white; font-weight: 700; }
+  .upload-card-header p { margin: 0; font-size: 13px; color: rgba(255,255,255,.7); }
+  .upload-form { padding: 24px 28px; }
+
+  .form-section { margin-bottom: 18px; }
+  .form-section-title {
+    font-size: 11px; font-weight: 700; color: var(--gehc-purple-1);
+    text-transform: uppercase; letter-spacing: 1px;
+    border-left: 3px solid var(--gehc-purple-1); padding-left: 8px;
+    margin-bottom: 14px; margin-top: 24px;
+  }
+  .form-label { font-size: 12px; font-weight: 700; color: #555; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+  .form-input, .form-textarea {
+    width: 100%; border: 1px solid #ddd; border-radius: var(--radius);
+    padding: 9px 12px; font-family: inherit; font-size: 13px; color: #1A1A1A;
+    box-sizing: border-box; transition: border-color .2s;
+  }
+  .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--gehc-purple-1); }
+  .form-textarea { resize: vertical; }
+  .form-hint { font-size: 11px; color: #999; margin-top: 4px; display: block; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-actions { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--gehc-border); }
+  .upload-hint { font-size: 12px; color: #888; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="upload-page">
   <div class="upload-card">
     <div class="upload-card-header">
-      <h1>New Dashboard Report</h1>
-      <p>Upload your Excel file and enter the period details below.</p>
+      <h1>New Monthly Report</h1>
+      <p>Upload your Excel file and fill in the report content below.</p>
     </div>
 
     <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
 
-      <div class="form-section">
-        <label class="form-label" for="period">Reporting Period</label>
-        <input class="form-input" type="text" id="period" name="period"
-               placeholder="e.g. April 2025" required />
+      <!-- ── Section 1: Report identity ── -->
+      <div class="form-section-title">Report Identity</div>
+
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label" for="period">Reporting Period *</label>
+          <input class="form-input" type="text" id="period" name="period"
+                 placeholder="e.g. February 2026" required />
+        </div>
+        <div class="form-section">
+          <label class="form-label" for="report_title">Report Title</label>
+          <input class="form-input" type="text" id="report_title" name="report_title"
+                 placeholder="e.g. Clinical Program dashboard" />
+        </div>
       </div>
 
       <div class="form-section">
-        <label class="form-label" for="file">Excel File (.xlsx)</label>
+        <label class="form-label" for="file">Excel File (.xlsx) *</label>
         <input type="file" id="file" name="file" accept=".xlsx,.xls"
-               style="display:block; width:100%; padding:10px; border:2px solid #C9A227;
-                      border-radius:8px; font-family:inherit; font-size:14px;
-                      background:#fffdf5; cursor:pointer;"
+               style="display:block; width:100%; padding:10px; border:2px solid var(--gehc-yellow);
+                      border-radius:var(--radius); font-family:inherit; font-size:13px;
+                      background:#fffdf5; cursor:pointer; box-sizing:border-box;"
                required />
       </div>
 
+      <!-- ── Section 2: Left column content ── -->
+      <div class="form-section-title">Overall View — Left Column</div>
+
       <div class="form-section">
-        <label class="form-label" for="key_events">Key Events This Period</label>
+        <label class="form-label" for="key_events">Key Events / Digital & Data</label>
         <textarea class="form-textarea" id="key_events" name="key_events" rows="4"
-                  placeholder="• Product launch in North America&#10;• New partnership signed&#10;• Supply chain disruption"></textarea>
+                  placeholder="• 40 sites engaged this period&#10;• Portfolio stable (–1) with higher in-flow&#10;• Tech reviews: 12 completed"></textarea>
+        <span class="form-hint">Appears as first text block in the Overall View column.</span>
       </div>
 
       <div class="form-section">
-        <label class="form-label" for="comments">Management Commentary</label>
-        <textarea class="form-textarea" id="comments" name="comments" rows="3"
-                  placeholder="Overall performance was above target..."></textarea>
+        <label class="form-label" for="comments">Academic & KOL Outline</label>
+        <textarea class="form-textarea" id="comments" name="comments" rows="4"
+                  placeholder="• Alliance: aligned on co-developing an AI referral-vetting solution&#10;• SNUH: Cardiac — Clinical trial team approved the ISR contract&#10;• HCL: Supported Hackathon using LLM for follow-up"></textarea>
+        <span class="form-hint">Appears as second text block in the Overall View column.</span>
       </div>
 
+      <!-- ── Section 3: Right column content ── -->
+      <div class="form-section-title">Outcome & Next Steps — Right Column</div>
+
+      <div class="form-section">
+        <label class="form-label" for="outcome">Outcome</label>
+        <textarea class="form-textarea" id="outcome" name="outcome" rows="4"
+                  placeholder="• Yongin Severance Hospital: Dr. Park's invited talk about Sonic DL in Brain&#10;• PNUH: Initial experience of deep learning reconstruction — Accepted to European Radiology&#10;• SOA: Reconstruction Algorithms — major revision to European Radiology Experimental"></textarea>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="major_points">Major Points & Next Steps</label>
+        <textarea class="form-textarea" id="major_points" name="major_points" rows="4"
+                  placeholder="• DocInsight: request to add Japanese language&#10;• CTI: New Trajectory planning PoC for CTI using Imaging Fabric&#10;• ICI–CTI: Initially anticipated June in Dubai → to modify"></textarea>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="help_needed">Help Needed</label>
+        <textarea class="form-textarea" id="help_needed" name="help_needed" rows="3"
+                  placeholder="• ESC/EACVI on POCUS/FOCUS AI based Echocardiography Certification: Slow reply&#10;• True Definition DL: Seeking collaboration partners for different body parts"></textarea>
+      </div>
+
+      <!-- ── Section 4: Bottom banner ── -->
+      <div class="form-section-title">Key Message</div>
+
+      <div class="form-section">
+        <label class="form-label" for="bottom_banner">Bottom Banner Message</label>
+        <textarea class="form-textarea" id="bottom_banner" name="bottom_banner" rows="2"
+                  placeholder="February delivered a stable portfolio with slightly fewer active projects, rising digital backlog, and continued internal program growth."></textarea>
+        <span class="form-hint">Displayed as a highlighted banner at the bottom of the report.</span>
+      </div>
+
+      <!-- ── Actions ── -->
       <div class="form-actions">
-        <button type="submit" class="btn-primary">Generate Dashboard →</button>
-        {% if has_config %}
-          <span class="form-hint">Config loaded — dashboard generated directly.</span>
-        {% else %}
-          <span class="form-hint">No KPI config — you will configure after upload.</span>
-        {% endif %}
+        <button type="submit" class="btn-primary">Generate Report →</button>
+        <span class="upload-hint">
+          {% if has_config %}
+            Config loaded — dashboard generated directly.
+          {% else %}
+            No KPI config — you will configure after upload.
+          {% endif %}
+        </span>
       </div>
 
     </form>

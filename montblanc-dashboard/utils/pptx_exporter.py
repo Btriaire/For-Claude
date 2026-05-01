@@ -66,19 +66,29 @@ class PPTXExporter:
         self.orange = self.palette[5]
 
     def generate(self, data: List[Dict], period: str,
-                 comments: str, key_events: str) -> str:
+                 report_title: str = "",
+                 key_events: str = "", comments: str = "",
+                 outcome: str = "", major_points: str = "",
+                 help_needed: str = "", bottom_banner: str = "") -> str:
         prs = Presentation()
         prs.slide_width  = self.W
         prs.slide_height = self.H
 
-        self._title_slide(prs, period)
+        full_title = f"{period} — {report_title}" if report_title else period
+        self._title_slide(prs, period, report_title)
         if data:
-            self._kpi_overview_slide(prs, data, period)
+            self._kpi_overview_slide(prs, data, full_title)
         chart_kpis = [d for d in data if d["breakdown"]]
         for i in range(0, len(chart_kpis), 2):
-            self._charts_slide(prs, chart_kpis[i:i + 2], period)
-        if key_events or comments:
-            self._events_slide(prs, key_events, comments, period)
+            self._charts_slide(prs, chart_kpis[i:i + 2], full_title)
+        right_text = "\n\n".join(filter(None, [
+            ("OUTCOME\n" + outcome) if outcome else "",
+            ("MAJOR POINTS & NEXT STEPS\n" + major_points) if major_points else "",
+            ("HELP NEEDED\n" + help_needed) if help_needed else "",
+        ]))
+        left_text = "\n\n".join(filter(None, [key_events, comments]))
+        if left_text or right_text or bottom_banner:
+            self._events_slide(prs, left_text, right_text or bottom_banner, full_title)
 
         out = tempfile.mktemp(suffix=".pptx")
         prs.save(out)
@@ -124,7 +134,7 @@ class PPTXExporter:
 
     # ── slides ────────────────────────────────────────────────────────────────
 
-    def _title_slide(self, prs, period):
+    def _title_slide(self, prs, period, report_title=""):
         slide = self._blank(prs)
         self._rect(slide, Inches(0), Inches(0), prs.slide_width, Inches(0.15), self.purple)
         self._rect(slide, Inches(0), prs.slide_height - Inches(0.15),
@@ -133,10 +143,13 @@ class PPTXExporter:
         self._rect(slide, Inches(0.5), Inches(5.3), Inches(6), Inches(0.06), self.yellow)
         self._tb(slide, Inches(0.8), Inches(2.5), Inches(10), Inches(1.3),
                  "GE HealthCare — INT STO Enterprise Solutions", 18, bold=True, color="#7F7F7F")
-        self._tb(slide, Inches(0.8), Inches(3.1), Inches(10), Inches(1.3),
-                 "Performance Dashboard", 28, bold=True, color="#000000")
+        main_title = f"Monthly Report  |  {period}"
+        if report_title:
+            main_title += f"  —  {report_title}"
+        self._tb(slide, Inches(0.8), Inches(3.1), Inches(11), Inches(1.3),
+                 main_title, 24, bold=True, color="#000000")
         self._tb(slide, Inches(0.8), Inches(4.1), Inches(8), Inches(0.65),
-                 period, 24, color=self.purple)
+                 period, 20, color=self.purple)
         self._tb(slide, Inches(0.8), Inches(4.9), Inches(8), Inches(0.45),
                  f"Generated on {datetime.now().strftime('%B %d, %Y')}", 10, color="#7F7F7F")
 
