@@ -1,3 +1,3 @@
 #!/bin/bash
-source /opt/render/project/src/.venv/bin/activate
-exec gunicorn app:app --bind 0.0.0.0:$PORT
+cd /home/user/For-Claude/montblanc-dashboard 2>/dev/null || true
+exec python3 app.py
