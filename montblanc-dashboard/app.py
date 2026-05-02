@@ -13,7 +13,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "montblanc-dashboard-dev-key-2024")
 
 UPLOAD_FOLDER = os.path.join(os.environ.get("TMPDIR", "/tmp"), "montblanc_uploads")
-CONFIG_FILE   = os.path.join(os.path.dirname(__file__), "dashboard_config.json")
+
+# Use app dir if writable (local), otherwise /tmp (Railway/Render)
+_APP_CONFIG = os.path.join(os.path.dirname(__file__), "dashboard_config.json")
+_TMP_CONFIG = os.path.join(os.environ.get("TMPDIR", "/tmp"), "montblanc_config.json")
+CONFIG_FILE  = _APP_CONFIG if os.access(os.path.dirname(_APP_CONFIG), os.W_OK) else _TMP_CONFIG
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -36,11 +40,17 @@ def _config_matches(config: dict, parser) -> bool:
     return True
 
 
-def load_config() -> dict:
+def load_config(session_fallback: list | None = None) -> dict:
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE) as f:
-            return _migrate_colors(json.load(f))
-    return _default_config()
+            cfg = _migrate_colors(json.load(f))
+        if session_fallback and not cfg["kpis"]:
+            cfg["kpis"] = session_fallback
+        return cfg
+    cfg = _default_config()
+    if session_fallback:
+        cfg["kpis"] = session_fallback
+    return cfg
 
 
 GEHC_COLORS = {
@@ -111,8 +121,12 @@ def upload():
     # Auto-apply suggestions if no config or config doesn't match this Excel
     if not config["kpis"] or not _config_matches(config, parser):
         config["kpis"] = parser.get_suggestions()
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(config, f, indent=2)
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f, indent=2)
+        except OSError:
+            # Fallback: store kpis in session if filesystem is read-only
+            session["kpis_fallback"] = config["kpis"]
 
     return redirect(url_for("dashboard"))
 
@@ -166,7 +180,7 @@ def dashboard():
     if not parser:
         return redirect(url_for("index"))
 
-    config   = load_config()
+    config   = load_config(session.get("kpis_fallback"))
     kpi_data = parser.extract_kpi_data(config["kpis"])
 
     return render_template(
@@ -190,7 +204,7 @@ def export_pptx():
     if not parser:
         return redirect(url_for("index"))
 
-    config   = load_config()
+    config   = load_config(session.get("kpis_fallback"))
     kpi_data = parser.extract_kpi_data(config["kpis"])
 
     exporter = PPTXExporter(config)
