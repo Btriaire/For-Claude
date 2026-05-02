@@ -12,7 +12,7 @@ from utils.pptx_exporter import PPTXExporter
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "montblanc-dashboard-dev-key-2024")
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
+UPLOAD_FOLDER = os.path.join(os.environ.get("TMPDIR", "/tmp"), "montblanc_uploads")
 CONFIG_FILE   = os.path.join(os.path.dirname(__file__), "dashboard_config.json")
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
 
@@ -39,20 +39,25 @@ def _config_matches(config: dict, parser) -> bool:
 def load_config() -> dict:
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE) as f:
-            return json.load(f)
+            return _migrate_colors(json.load(f))
     return _default_config()
 
 
+GEHC_COLORS = {
+    "c1": "#6400A0", "c2": "#7845B3", "c3": "#66BDCC", "c4": "#31C18A",
+    "c5": "#F8DA65", "c6": "#F2886E", "c7": "#B02DFF", "c8": "#CB73FF",
+}
+
 def _default_config() -> dict:
-    return {
-        "kpis": [],
-        "colors": {
-            "primary": "#5B2D8E",
-            "secondary": "#C9A227",
-            "tertiary": "#6DBF8B",
-            "quaternary": "#E8735A",
-        },
-    }
+    return {"kpis": [], "colors": dict(GEHC_COLORS)}
+
+
+def _migrate_colors(config: dict) -> dict:
+    """Convert old primary/secondary/tertiary/quaternary keys to c1-c8."""
+    colors = config.get("colors", {})
+    if "c1" not in colors:
+        config["colors"] = dict(GEHC_COLORS)
+    return config
 
 
 def _get_parser() -> ExcelParser | None:
